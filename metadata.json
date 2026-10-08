@@ -1,0 +1,6 @@
+{
+  "name": "E-Voting RW 14 Pedurungan Tengah",
+  "description": "Sistem Pemilihan Ketua RW 14 Kelurahan Pedurungan Tengah, Kota Semarang dengan verifikasi e-KTP, token kriptografi anti-curang, dasbor real-time, dan notifikasi WhatsApp.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
