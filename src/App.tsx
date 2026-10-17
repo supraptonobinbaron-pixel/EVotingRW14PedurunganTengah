@@ -27,6 +27,7 @@ import { DptLookupModal } from './components/DptLookupModal';
 import { SecurityAuditModal } from './components/SecurityAuditModal';
 import { BeritaAcaraModal } from './components/BeritaAcaraModal';
 import { CandidateManageModal } from './components/CandidateManageModal';
+import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 
 export default function App() {
@@ -47,6 +48,7 @@ export default function App() {
   const [isBeritaAcaraOpen, setIsBeritaAcaraOpen] = useState<boolean>(false);
   const [isCandidateManageOpen, setIsCandidateManageOpen] = useState<boolean>(false);
   const [isWhatsAppConfigOpen, setIsWhatsAppConfigOpen] = useState<boolean>(false);
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
   const [preSelectedCitizen, setPreSelectedCitizen] = useState<CitizenRecord | null>(null);
 
   // WhatsApp receipt modal state
@@ -131,6 +133,7 @@ export default function App() {
         }}
         onOpenWhatsAppConfig={() => setIsWhatsAppConfigOpen(true)}
         onOpenManageCandidates={() => setIsCandidateManageOpen(true)}
+        onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
         hasActiveToken={!!activeToken}
       />
 
@@ -147,6 +150,7 @@ export default function App() {
           onDptClick={() => setIsDptModalOpen(true)}
           onOpenWhatsAppConfig={() => setIsWhatsAppConfigOpen(true)}
           onOpenManageCandidates={() => setIsCandidateManageOpen(true)}
+          onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
           totalVotes={totalVotes}
           totalDpt={totalDpt}
         />
@@ -314,6 +318,18 @@ export default function App() {
         isOpen={isCandidateManageOpen}
         onClose={() => setIsCandidateManageOpen(false)}
         candidates={candidates}
+      />
+
+      <SupabaseConfigModal
+        isOpen={isSupabaseModalOpen}
+        onClose={() => setIsSupabaseModalOpen(false)}
+        onSyncComplete={() => {
+          setCandidates(electionStore.getCandidates());
+          setAuditLogs(electionStore.getAuditLogs());
+          setBallots(electionStore.getBallots());
+          setTotalVotes(electionStore.getTotalVotesCast());
+          setTotalDpt(electionStore.getTotalDptCount());
+        }}
       />
 
     </div>

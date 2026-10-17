@@ -1,7 +1,8 @@
 import React from 'react';
-import { ShieldCheck, Vote, ScanLine, Search, Lock, BarChart3, MessageSquare, RotateCcw, Users } from 'lucide-react';
+import { ShieldCheck, Vote, ScanLine, Search, Lock, BarChart3, MessageSquare, RotateCcw, Users, Database } from 'lucide-react';
 import { electionStore } from '../services/electionStore';
 import { RwLogo } from './RwLogo';
+import { isSupabaseConfigured } from '../services/supabaseService';
 
 interface NavbarProps {
   activeTab: 'dashboard' | 'voting' | 'verify' | 'dpt' | 'security';
@@ -9,6 +10,7 @@ interface NavbarProps {
   onOpenQuickVote: () => void;
   onOpenWhatsAppConfig: () => void;
   onOpenManageCandidates: () => void;
+  onOpenSupabaseConfig?: () => void;
   hasActiveToken: boolean;
 }
 
@@ -18,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenQuickVote,
   onOpenWhatsAppConfig,
   onOpenManageCandidates,
+  onOpenSupabaseConfig,
   hasActiveToken
 }) => {
   return (
@@ -125,6 +128,29 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Users className="w-4 h-4 text-slate-600 shrink-0" />
             <span className="hidden md:inline">Kandidat</span>
           </button>
+
+          {/* Supabase Database Settings Trigger */}
+          {onOpenSupabaseConfig && (
+            <button
+              onClick={onOpenSupabaseConfig}
+              title={isSupabaseConfigured() ? 'Database Supabase: Terhubung & Real-time Aktif' : 'Hubungkan Database Supabase (Cloud)'}
+              className={`p-2 rounded-lg border transition-all cursor-pointer min-h-[38px] flex items-center justify-center gap-1.5 ${
+                isSupabaseConfigured()
+                  ? 'text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border-emerald-300'
+                  : 'text-slate-600 bg-slate-100 hover:bg-slate-200 border-slate-300'
+              }`}
+            >
+              <Database className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span className="hidden lg:inline text-xs font-semibold">
+                {isSupabaseConfigured() ? 'Supabase' : 'Supabase'}
+              </span>
+              <span
+                className={`w-2 h-2 rounded-full shrink-0 ${
+                  isSupabaseConfigured() ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                }`}
+              />
+            </button>
+          )}
 
           {/* WhatsApp API Settings Trigger */}
           <button

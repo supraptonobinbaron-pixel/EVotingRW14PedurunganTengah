@@ -16,6 +16,20 @@ import {
   getVoterDisplayName,
   dispatchWhatsAppBusinessMessage
 } from './whatsappBusinessService';
+import {
+  isSupabaseConfigured,
+  fetchCandidatesFromSupabase,
+  fetchDptFromSupabase,
+  fetchBallotsFromSupabase,
+  fetchAuditLogsFromSupabase,
+  upsertCandidateToSupabase,
+  deleteCandidateFromSupabase,
+  upsertCitizenToSupabase,
+  deleteCitizenFromSupabase,
+  insertBallotToSupabase,
+  insertAuditLogToSupabase,
+  subscribeToSupabaseChanges
+} from './supabaseService';
 
 // Candidate portraits
 import candidateBambangImg from '../assets/images/candidate_bambang_1791102566410.jpg';
@@ -317,6 +331,7 @@ class ElectionStore {
   private lastBlockHash = '8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4';
   private listeners: Set<() => void> = new Set();
   private totalDptCount = 318; // 6 RTs in RW 14 Pedurungan Tengah (RT 01 - RT 06)
+  private unsubscribeRealtime: (() => void) | null = null;
 
   constructor() {
     // Reset DPT on request "Hapus data DPT RW 14"
@@ -326,6 +341,85 @@ class ElectionStore {
       localStorage.setItem('rw14_dpt_cleared_v1', 'true');
     } else {
       this.loadFromStorage();
+    }
+
+    // Automatically sync with Supabase if configured
+    if (isSupabaseConfigured()) {
+      this.syncWithSupabase();
+    }
+  }
+
+  public async syncWithSupabase(): Promise<boolean> {
+    if (!isSupabaseConfigured()) return false;
+    try {
+      const [remoteCands, remoteDpt, remoteBallots, remoteAudits] = await Promise.all([
+        fetchCandidatesFromSupabase(),
+        fetchDptFromSupabase(),
+        fetchBallotsFromSupabase(),
+        fetchAuditLogsFromSupabase()
+      ]);
+
+      let changed = false;
+
+      if (remoteCands && remoteCands.length > 0) {
+        this.candidates = remoteCands;
+        changed = true;
+      }
+
+      if (remoteDpt && remoteDpt.length > 0) {
+        this.dptList = remoteDpt;
+        this.totalDptCount = remoteDpt.length;
+        changed = true;
+      }
+
+      if (remoteBallots) {
+        this.ballots = remoteBallots;
+        if (remoteBallots.length > 0) {
+          this.lastBlockHash = remoteBallots[remoteBallots.length - 1].receiptHash;
+        }
+        changed = true;
+      }
+
+      if (remoteAudits && remoteAudits.length > 0) {
+        this.auditLogs = remoteAudits;
+        changed = true;
+      }
+
+      if (changed) {
+        this.saveToStorage();
+      }
+
+      this.setupRealtimeSync();
+      return true;
+    } catch (e) {
+      console.error('Error syncing with Supabase:', e);
+      return false;
+    }
+  }
+
+  public setupRealtimeSync() {
+    if (this.unsubscribeRealtime) {
+      this.unsubscribeRealtime();
+      this.unsubscribeRealtime = null;
+    }
+
+    if (isSupabaseConfigured()) {
+      this.unsubscribeRealtime = subscribeToSupabaseChanges(async () => {
+        try {
+          const [cands, dpt, ballots] = await Promise.all([
+            fetchCandidatesFromSupabase(),
+            fetchDptFromSupabase(),
+            fetchBallotsFromSupabase()
+          ]);
+          if (cands) this.candidates = cands;
+          if (dpt) {
+            this.dptList = dpt;
+            this.totalDptCount = dpt.length;
+          }
+          if (ballots) this.ballots = ballots;
+          this.notify();
+        } catch (_) {}
+      });
     }
   }
 
@@ -411,6 +505,9 @@ class ElectionStore {
     });
 
     this.saveToStorage();
+    if (isSupabaseConfigured()) {
+      upsertCandidateToSupabase(newCandidate).catch(e => console.error(e));
+    }
     return newCandidate;
   }
 
@@ -438,6 +535,9 @@ class ElectionStore {
     });
 
     this.saveToStorage();
+    if (isSupabaseConfigured()) {
+      upsertCandidateToSupabase(this.candidates[index]).catch(e => console.error(e));
+    }
     return this.candidates[index];
   }
 
@@ -458,6 +558,9 @@ class ElectionStore {
     });
 
     this.saveToStorage();
+    if (isSupabaseConfigured()) {
+      deleteCandidateFromSupabase(id).catch(e => console.error(e));
+    }
     return true;
   }
 
@@ -488,6 +591,9 @@ class ElectionStore {
     this.totalDptCount = this.dptList.length;
 
     this.saveToStorage();
+    if (isSupabaseConfigured()) {
+      deleteCitizenFromSupabase(id).catch(e => console.error(e));
+    }
     return true;
   }
 
@@ -585,6 +691,9 @@ class ElectionStore {
     };
     this.dptList.unshift(newCitizen);
     this.saveToStorage();
+    if (isSupabaseConfigured()) {
+      upsertCitizenToSupabase(newCitizen).catch(e => console.error(e));
+    }
     return newCitizen;
   }
 
@@ -792,6 +901,16 @@ class ElectionStore {
     });
 
     this.saveToStorage();
+
+    // Sync to Supabase in real-time (cloud ledger)
+    if (isSupabaseConfigured()) {
+      Promise.all([
+        insertBallotToSupabase(newBallot),
+        upsertCandidateToSupabase(candidate),
+        upsertCitizenToSupabase(citizen),
+        insertAuditLogToSupabase(this.auditLogs[0])
+      ]).catch(e => console.error('Supabase vote sync error:', e));
+    }
 
     return {
       receiptHash,

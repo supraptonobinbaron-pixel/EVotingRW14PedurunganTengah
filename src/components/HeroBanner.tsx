@@ -1,7 +1,8 @@
 import React from 'react';
-import { ScanLine, Vote, Search, ShieldCheck, CheckCircle2, MessageSquare, Users } from 'lucide-react';
+import { ScanLine, Vote, Search, ShieldCheck, CheckCircle2, MessageSquare, Users, Database } from 'lucide-react';
 import heroBalaiImg from '../assets/images/hero_balai_rw_1791102609909.jpg';
 import { RwLogo } from './RwLogo';
+import { isSupabaseConfigured } from '../services/supabaseService';
 
 interface HeroBannerProps {
   onVerifyClick: () => void;
@@ -9,6 +10,7 @@ interface HeroBannerProps {
   onDptClick: () => void;
   onOpenWhatsAppConfig: () => void;
   onOpenManageCandidates: () => void;
+  onOpenSupabaseConfig?: () => void;
   totalVotes: number;
   totalDpt: number;
 }
@@ -19,6 +21,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   onDptClick,
   onOpenWhatsAppConfig,
   onOpenManageCandidates,
+  onOpenSupabaseConfig,
   totalVotes,
   totalDpt
 }) => {
@@ -103,11 +106,25 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
           <button
             onClick={onOpenWhatsAppConfig}
-            className="col-span-2 sm:col-span-1 px-3 sm:px-3.5 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-medium text-xs sm:text-sm rounded-xl border border-emerald-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px]"
+            className="px-3 sm:px-3.5 py-2.5 bg-emerald-950/80 hover:bg-emerald-900 text-emerald-300 font-medium text-xs sm:text-sm rounded-xl border border-emerald-800 transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px]"
           >
             <MessageSquare className="w-4 h-4 shrink-0 text-emerald-400" />
-            <span>WhatsApp Business API</span>
+            <span>WhatsApp API</span>
           </button>
+
+          {onOpenSupabaseConfig && (
+            <button
+              onClick={onOpenSupabaseConfig}
+              className={`col-span-2 sm:col-span-1 px-3 sm:px-3.5 py-2.5 font-medium text-xs sm:text-sm rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer min-h-[42px] ${
+                isSupabaseConfigured()
+                  ? 'bg-emerald-900/90 hover:bg-emerald-800 text-emerald-200 border-emerald-600'
+                  : 'bg-slate-800/90 hover:bg-slate-700 text-slate-200 border-slate-700'
+              }`}
+            >
+              <Database className="w-4 h-4 shrink-0 text-emerald-400" />
+              <span>{isSupabaseConfigured() ? 'Supabase Terhubung' : 'Hubungkan Supabase'}</span>
+            </button>
+          )}
         </div>
 
         {/* Live Mini Metric Row */}
