@@ -20,3 +20,7 @@ export default defineConfig(() => {
     },
   };
 });
+export default defineConfig({
+  base: '/EVotingRW14PedurunganTengah/',
+  // konfigurasi lainnya...
+})
