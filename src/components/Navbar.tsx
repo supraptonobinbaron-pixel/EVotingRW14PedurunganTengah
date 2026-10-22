@@ -11,6 +11,7 @@ interface NavbarProps {
   onOpenWhatsAppConfig: () => void;
   onOpenManageCandidates: () => void;
   onOpenSupabaseConfig?: () => void;
+  onResetRequest?: () => void;
   hasActiveToken: boolean;
 }
 
@@ -21,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenWhatsAppConfig,
   onOpenManageCandidates,
   onOpenSupabaseConfig,
+  onResetRequest,
   hasActiveToken
 }) => {
   return (
@@ -162,17 +164,15 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
 
           {/* Reset Data Button */}
-          <button
-            onClick={() => {
-              if (confirm('Reset seluruh data pemilihan ke kondisi awal bersih (RT 01 s/d RT 06)?')) {
-                electionStore.resetToFreshState();
-              }
-            }}
-            title="Reset data contoh (RT 01 - RT 06)"
-            className="p-2 text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
+          {onResetRequest && (
+            <button
+              onClick={onResetRequest}
+              title="Reset data contoh pemilihan (RT 01 - RT 06)"
+              className="p-2 text-slate-500 hover:text-red-600 bg-slate-100 hover:bg-slate-200 rounded-lg transition-colors cursor-pointer min-h-[38px] min-w-[38px] flex items-center justify-center"
+            >
+              <RotateCcw className="w-4 h-4" />
+            </button>
+          )}
 
           {/* Primary Action Button */}
           <button

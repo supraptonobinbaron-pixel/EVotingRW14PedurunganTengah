@@ -300,10 +300,45 @@ export const RAW_DPT_SEED = [
   }
 ];
 
+// Helper to generate full 318 DPT records (53 per RT: RT 01 to RT 06)
+const MALE_NAMES = [
+  'Ahmad Syafii', 'Agus Setiawan', 'Bambang Trianto', 'Cahyo Wibisono', 'Dedi Kurniawan',
+  'Eko Prasetyo', 'Fajar Ramadhan', 'Gunawan Wibowo', 'Hadi Sucipto', 'Heru Purnomo',
+  'Imam Wahyudi', 'Joko Susilo', 'Kuncoro Jati', 'Lukman Hakim', 'Miftah Farid',
+  'Nanang Setyawan', 'Oki Danuarta', 'Prasetyo Utomo', 'Raden Mas Haryo', 'Sigit Pamungkas',
+  'Tri Haryanto', 'Untung Surapati', 'Wahyu Hidayat', 'Yudha Pratama', 'Zaenal Arifin',
+  'Dwi Cahyono', 'Slamet Raharjo', 'Supriyadi', 'Totok Maryanto', 'Wawan Darmawan',
+  'Arief Budiman', 'Bayu Anggoro', 'Candra Kirana', 'Danang Wijaya', 'Endro Siswanto',
+  'Hendra Saputra', 'Irfan Maulana', 'Julianto', 'Kuswanto', 'Mahmud Yunus'
+];
+
+const FEMALE_NAMES = [
+  'Siti Aminah', 'Sri Lestari', 'Dewi Rahmawati', 'Tri Wahyuni', 'Retno Wulandari',
+  'Ratna Juwita', 'Endang Suwarni', 'Nur Aini', 'Maya Indah', 'Fitri Handayani',
+  'Dian Puspitasari', 'Rini Sulistyo', 'Yuni Kartika', 'Lina Marlina', 'Kusuma Wardani',
+  'Tuti Alawiyah', 'Umi Kulsum', 'Widia Astuti', 'Yuliana Sari', 'Zulfa Zakiyah',
+  'Agustina Rahayu', 'Budiarti', 'Citra Permata', 'Dwi Astuti', 'Erna Wati',
+  'Farida Ariani', 'Gita Gutawa', 'Hesti Purwanti', 'Ika Nurjanah', 'Juwita Bahar',
+  'Kusmiyati', 'Lilis Suryani', 'Mariati', 'Novi Rahma', 'Oktavia Dewi'
+];
+
+const RT_STREETS: Record<string, string[]> = {
+  'RT 01': ['Jl. Taman Pedurungan Tengah', 'Gang Cempaka Mulya'],
+  'RT 02': ['Jl. Manunggal Jati', 'Gang Cempaka Mulya'],
+  'RT 03': ['Gang Kenanga RT 03/14', 'Jl. Sukarno Hatta Timur Blok C'],
+  'RT 04': ['Jl. Sukarno Hatta Timur', 'Jl. Taman Pedurungan Baru'],
+  'RT 05': ['Gang Melati Indah', 'Jl. Flamboyan Raya'],
+  'RT 06': ['Jl. Pedurungan Asri Timur', 'Jl. Flamboyan Raya']
+};
+
 function generateFreshDpt(): CitizenRecord[] {
-  return RAW_DPT_SEED.map(seed => {
+  const result: CitizenRecord[] = [];
+  let currentId = 1;
+
+  // Add the initial 16 seeds first
+  RAW_DPT_SEED.forEach(seed => {
     const ageInfo = getAgeGroupFromDob(seed.dob);
-    return {
+    result.push({
       id: seed.id,
       nik: seed.nik,
       nikMasked: maskNik(seed.nik),
@@ -317,9 +352,68 @@ function generateFreshDpt(): CitizenRecord[] {
       zona: getZoneFromRt(seed.rt),
       alamat: seed.alamat,
       phone: seed.phone,
-      hasVoted: false // Reset: all fresh
-    };
+      hasVoted: false
+    });
+    currentId++;
   });
+
+  // Populate each RT up to 53 residents (6 * 53 = 318 residents total)
+  RT_LIST.forEach((rt, rtIndex) => {
+    const existingInRt = result.filter(c => c.rt === rt).length;
+    const needed = 53 - existingInRt;
+    const streets = RT_STREETS[rt] || ['Jl. Pedurungan Tengah'];
+
+    for (let i = 0; i < needed; i++) {
+      const isFemale = (i + rtIndex) % 2 === 1;
+      const gender: 'L' | 'P' = isFemale ? 'P' : 'L';
+      const namePool = isFemale ? FEMALE_NAMES : MALE_NAMES;
+      const nama = namePool[(i * 3 + rtIndex * 5) % namePool.length];
+
+      // Calculate realistic birth date (between 18 and 68 years old)
+      const age = 18 + ((i * 7 + rtIndex * 11) % 52);
+      const birthYear = new Date().getFullYear() - age;
+      const monthNum = 1 + ((i * 5 + rtIndex) % 12);
+      const rawDay = 1 + ((i * 3 + rtIndex * 2) % 28);
+      const dobStr = `${birthYear}-${monthNum.toString().padStart(2, '0')}-${rawDay.toString().padStart(2, '0')}`;
+
+      // Semarang NIK standard: 337411 (Semarang Kota - Pedurungan) + DDMMYY (DD+40 for female) + 4 digit sequence
+      const nikDay = isFemale ? rawDay + 40 : rawDay;
+      const nikYear = birthYear.toString().slice(-2);
+      const seqStr = (1000 + currentId).toString();
+      const nik = `337411${nikDay.toString().padStart(2, '0')}${monthNum.toString().padStart(2, '0')}${nikYear}${seqStr}`;
+
+      const street = streets[i % streets.length];
+      const houseNum = ((i * 4 + rtIndex * 6 + 1) % 90) + 1;
+      const alamat = `${street} No. ${houseNum}`;
+
+      const phonePrefix = ['0812', '0813', '0857', '0878', '0896', '0858'][(i + rtIndex) % 6];
+      const phoneSuffix = (10000000 + (currentId * 8923) % 90000000).toString();
+      const phone = `${phonePrefix}${phoneSuffix.slice(0, 8)}`;
+
+      const ageInfo = getAgeGroupFromDob(dobStr);
+
+      result.push({
+        id: `DPT-${currentId.toString().padStart(3, '0')}`,
+        nik,
+        nikMasked: maskNik(nik),
+        nama,
+        gender,
+        tanggalLahir: dobStr,
+        usia: ageInfo.usia,
+        ageGroup: ageInfo.group,
+        rt,
+        rw: 'RW 14',
+        zona: getZoneFromRt(rt),
+        alamat,
+        phone,
+        hasVoted: false
+      });
+
+      currentId++;
+    }
+  });
+
+  return result;
 }
 
 class ElectionStore {
@@ -330,17 +424,17 @@ class ElectionStore {
   private ballots: CastBallot[] = [];
   private lastBlockHash = '8f434346648f6b96df89dda901c5176b10a6d83961dd3c1ac88b59b2dc327aa4';
   private listeners: Set<() => void> = new Set();
-  private totalDptCount = 318; // 6 RTs in RW 14 Pedurungan Tengah (RT 01 - RT 06)
+  private totalDptCount = 318; // 6 RTs in RW 14 Pedurungan Tengah (RT 01 - RT 06, exactly 53 each = 318 total)
   private unsubscribeRealtime: (() => void) | null = null;
 
   constructor() {
-    // Reset DPT on request "Hapus data DPT RW 14"
-    const clearedKey = localStorage.getItem('rw14_dpt_cleared_v1');
-    if (clearedKey !== 'true') {
-      this.clearAllDpt();
-      localStorage.setItem('rw14_dpt_cleared_v1', 'true');
-    } else {
-      this.loadFromStorage();
+    this.loadFromStorage();
+
+    // If storage was empty or previously wiped, initialize with full 318 DPT records
+    if (!this.dptList || this.dptList.length < 50) {
+      this.dptList = generateFreshDpt();
+      this.totalDptCount = this.dptList.length;
+      this.saveToStorage();
     }
 
     // Automatically sync with Supabase if configured

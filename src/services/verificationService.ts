@@ -180,7 +180,8 @@ export function performStrictVerification(
   }
 
   // 6. RT Match check
-  if (inputRt && citizen.rt !== inputRt) {
+  const rtMatches = !inputRt || citizen.rt === inputRt;
+  if (!rtMatches) {
     discrepancies.push(`Wilayah tempat tinggal pemilih tercatat di ${citizen.rt}, bukan ${inputRt}.`);
   }
 
@@ -195,6 +196,7 @@ export function performStrictVerification(
     !!citizen &&
     nameMatchPassed &&
     genderMatch &&
+    rtMatches &&
     !citizen.hasVoted;
 
   return {

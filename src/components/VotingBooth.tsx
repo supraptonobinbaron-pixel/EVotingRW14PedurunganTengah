@@ -35,6 +35,7 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [showConfirmModal, setShowConfirmModal] = useState<boolean>(false);
   const [isCasting, setIsCasting] = useState<boolean>(false);
+  const [castError, setCastError] = useState<string>('');
   const [expandedCandidateId, setExpandedCandidateId] = useState<string | null>(null);
 
   // Privacy Opt-In: Allow full name on WhatsApp notification
@@ -114,7 +115,8 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
     } catch (err: unknown) {
       setIsCasting(false);
       const msg = err instanceof Error ? err.message : 'Gagal mengirimkan surat suara.';
-      alert(msg);
+      setCastError(msg);
+      setTokenError(msg);
     }
   };
 
@@ -401,6 +403,13 @@ export const VotingBooth: React.FC<VotingBoothProps> = ({
             <h3 className="text-lg font-bold text-slate-900 mb-2">
               Pastikan Pilihan Anda Sudah Mantap
             </h3>
+
+            {castError && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl text-left flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{castError}</span>
+              </div>
+            )}
 
             {/* Candidate Summary Card */}
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 text-left my-3 flex items-center gap-3">

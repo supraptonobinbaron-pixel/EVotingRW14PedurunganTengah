@@ -1,28 +1,61 @@
-import React, { useState } from 'react';
-import { Lock, ShieldCheck, Key, RefreshCw, FileCode, CheckCircle2, Copy } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, ShieldCheck, Key, RefreshCw, FileCode, CheckCircle2, Copy, Search, AlertCircle, Database } from 'lucide-react';
 import { sha256, encryptVoterData, decryptVoterData } from '../services/cryptoService';
-import { AuditLogItem } from '../types/election';
+import { electionStore } from '../services/electionStore';
+import { AuditLogItem, CastBallot } from '../types/election';
 
 interface SecurityAuditModalProps {
   isOpen: boolean;
   onClose: () => void;
   auditLogs: AuditLogItem[];
+  initialHashQuery?: string;
 }
 
 export const SecurityAuditModal: React.FC<SecurityAuditModalProps> = ({
   isOpen,
   onClose,
-  auditLogs
+  auditLogs,
+  initialHashQuery = ''
 }) => {
   const [testPlaintext, setTestPlaintext] = useState<string>('NIK: 3374112005820001, NAMA: Budi Santoso, WILAYAH: RT 01 RW 14');
   const [encryptedOutput, setEncryptedOutput] = useState<string>('');
   const [decryptedOutput, setDecryptedOutput] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  const [testHashInput, setTestHashInput] = useState<string>('RW14:VOTE:PEDURUNGAN_TENGAH:SEMARANG:2026');
-  const [calculatedHash, setCalculatedHash] = useState<string>('');
+  // Receipt Hash Verification State
+  const [hashSearchInput, setHashSearchInput] = useState<string>('');
+  const [verifyResult, setVerifyResult] = useState<{
+    found: boolean;
+    ballot?: CastBallot;
+    message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      if (initialHashQuery) {
+        setHashSearchInput(initialHashQuery);
+        const res = electionStore.verifyReceiptHash(initialHashQuery);
+        setVerifyResult(res);
+      } else {
+        setVerifyResult(null);
+      }
+    }
+  }, [isOpen, initialHashQuery]);
 
   if (!isOpen) return null;
+
+  const handleVerifyReceipt = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!hashSearchInput.trim()) {
+      setVerifyResult({
+        found: false,
+        message: 'Masukkan 64 karakter hash SHA-256 dari tanda terima Anda.'
+      });
+      return;
+    }
+    const res = electionStore.verifyReceiptHash(hashSearchInput);
+    setVerifyResult(res);
+  };
 
   const handleTestEncrypt = async () => {
     setIsProcessing(true);
@@ -34,11 +67,6 @@ export const SecurityAuditModal: React.FC<SecurityAuditModalProps> = ({
     } finally {
       setIsProcessing(false);
     }
-  };
-
-  const handleCalculateHash = async () => {
-    const hash = await sha256(testHashInput);
-    setCalculatedHash(hash);
   };
 
   return (
@@ -113,6 +141,91 @@ export const SecurityAuditModal: React.FC<SecurityAuditModalProps> = ({
               </p>
             </div>
 
+          </div>
+
+          {/* RECEIPT HASH VERIFIER (PUBLIC LEDGER CHECK) */}
+          <div className="p-4 sm:p-5 bg-emerald-50/70 rounded-2xl border border-emerald-200 shadow-sm space-y-3">
+            <div className="flex items-center justify-between pb-2 border-b border-emerald-200">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-emerald-700" />
+                <h3 className="text-sm font-bold text-emerald-950">
+                  Verifikasi Hash Struk Tanda Terima SHA-256 (Cek Ledger Publik RW 14)
+                </h3>
+              </div>
+              <span className="text-[11px] text-emerald-800 font-semibold bg-emerald-100 px-2 py-0.5 rounded-full">
+                Ledger Digital Valid
+              </span>
+            </div>
+
+            <p className="text-xs text-emerald-800 leading-relaxed">
+              Masukkan 64 karakter kode hash SHA-256 dari tanda terima WhatsApp Anda untuk memastikan surat suara Anda tercatat sah di kotak suara digital RW 14 tanpa membongkar kerahasiaan pilihan Anda.
+            </p>
+
+            <form onSubmit={handleVerifyReceipt} className="flex flex-col sm:flex-row gap-2">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
+                <input
+                  type="text"
+                  value={hashSearchInput}
+                  onChange={e => setHashSearchInput(e.target.value)}
+                  placeholder="Tempel 64-karakter hash tanda terima (contoh: c4ca4238a0b9...)"
+                  className="w-full pl-9 pr-3 py-2 text-xs font-mono bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-600"
+                />
+              </div>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs rounded-lg transition-colors cursor-pointer whitespace-nowrap flex items-center justify-center gap-1.5 shadow-sm"
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Verifikasi Ledger</span>
+              </button>
+            </form>
+
+            {verifyResult && (
+              <div
+                className={`p-3.5 rounded-xl border text-xs space-y-2 ${
+                  verifyResult.found
+                    ? 'bg-white border-emerald-300 text-emerald-950 shadow-xs'
+                    : 'bg-white border-red-300 text-red-900 shadow-xs'
+                }`}
+              >
+                <div className="flex items-center gap-2 font-bold text-sm">
+                  {verifyResult.found ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span className="text-emerald-700">Tanda Terima Terverifikasi Valid 100%!</span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertCircle className="w-4 h-4 text-red-600" />
+                      <span className="text-red-700">Tanda Terima Tidak Ditemukan</span>
+                    </>
+                  )}
+                </div>
+                <p className="text-xs leading-relaxed">{verifyResult.message}</p>
+
+                {verifyResult.ballot && (
+                  <div className="mt-2 pt-2 border-t border-slate-200 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] font-mono">
+                    <div>
+                      <span className="text-slate-400 block font-sans">Tinggi Blok:</span>
+                      <strong className="text-slate-800">#{verifyResult.ballot.blockHeight}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-sans">Waktu Sah:</span>
+                      <strong className="text-slate-800">{verifyResult.ballot.timestamp}</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-sans">Wilayah Pemilih:</span>
+                      <strong className="text-slate-800">{verifyResult.ballot.rtOrigin} ({verifyResult.ballot.zoneOrigin})</strong>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block font-sans">Integritas:</span>
+                      <strong className="text-emerald-700">LUBER JURDIL ✓</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* INTERACTIVE CRYPTO TEST LABORATORY */}

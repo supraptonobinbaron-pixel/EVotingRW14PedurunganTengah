@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserPlus, Edit3, Trash2, X, Check, AlertTriangle, Image, Upload } from 'lucide-react';
+import { UserPlus, Edit3, Trash2, X, Check, AlertTriangle, AlertCircle, Image, Upload } from 'lucide-react';
 import { Candidate } from '../types/election';
 import { electionStore, RT_LIST } from '../services/electionStore';
 import { RwLogo } from './RwLogo';
@@ -38,6 +38,7 @@ export const CandidateManageModal: React.FC<CandidateManageModalProps> = ({
   const [customPhotoInput, setCustomPhotoInput] = useState<string>('');
 
   const [notification, setNotification] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   if (!isOpen) return null;
@@ -98,8 +99,9 @@ export const CandidateManageModal: React.FC<CandidateManageModalProps> = ({
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage('');
     if (!name.trim()) {
-      alert('Nama lengkap calon wajib diisi.');
+      setErrorMessage('Nama lengkap calon wajib diisi.');
       return;
     }
 
@@ -140,7 +142,7 @@ export const CandidateManageModal: React.FC<CandidateManageModalProps> = ({
       setEditingCandidateId(null);
       setTimeout(() => setNotification(''), 3000);
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Gagal menyimpan kandidat.');
+      setErrorMessage(err instanceof Error ? err.message : 'Gagal menyimpan kandidat.');
     }
   };
 
@@ -187,6 +189,23 @@ export const CandidateManageModal: React.FC<CandidateManageModalProps> = ({
             <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
               <Check className="w-4 h-4 text-emerald-600 shrink-0" />
               <span>{notification}</span>
+            </div>
+          )}
+
+          {/* Error banner */}
+          {errorMessage && (
+            <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setErrorMessage('')}
+                className="text-red-500 hover:text-red-700"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
 

@@ -29,6 +29,7 @@ import { BeritaAcaraModal } from './components/BeritaAcaraModal';
 import { CandidateManageModal } from './components/CandidateManageModal';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
+import { ConfirmationModal } from './components/ConfirmationModal';
 
 export default function App() {
   const [candidates, setCandidates] = useState<Candidate[]>(electionStore.getCandidates());
@@ -49,6 +50,7 @@ export default function App() {
   const [isCandidateManageOpen, setIsCandidateManageOpen] = useState<boolean>(false);
   const [isWhatsAppConfigOpen, setIsWhatsAppConfigOpen] = useState<boolean>(false);
   const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState<boolean>(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState<boolean>(false);
   const [preSelectedCitizen, setPreSelectedCitizen] = useState<CitizenRecord | null>(null);
 
   // WhatsApp receipt modal state
@@ -105,8 +107,11 @@ export default function App() {
     setWhatsAppModalData(result);
   };
 
+  const [auditHashQuery, setAuditHashQuery] = useState<string>('');
+
   // Handle Verify Receipt from WhatsApp Modal
   const handleVerifyReceiptInAudit = (hash: string) => {
+    setAuditHashQuery(hash);
     setIsSecurityModalOpen(true);
   };
 
@@ -134,6 +139,7 @@ export default function App() {
         onOpenWhatsAppConfig={() => setIsWhatsAppConfigOpen(true)}
         onOpenManageCandidates={() => setIsCandidateManageOpen(true)}
         onOpenSupabaseConfig={() => setIsSupabaseModalOpen(true)}
+        onResetRequest={() => setIsResetConfirmOpen(true)}
         hasActiveToken={!!activeToken}
       />
 
@@ -238,12 +244,7 @@ export default function App() {
             </button>
             <span>·</span>
             <button
-              onClick={() => {
-                if (confirm('Reset seluruh data contoh pemilihan ke status bersih?')) {
-                  electionStore.resetToFreshState();
-                  setActiveToken(null);
-                }
-              }}
+              onClick={() => setIsResetConfirmOpen(true)}
               className="text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
             >
               Reset Data Contoh
@@ -301,9 +302,11 @@ export default function App() {
         isOpen={isSecurityModalOpen}
         onClose={() => {
           setIsSecurityModalOpen(false);
+          setAuditHashQuery('');
           if (activeTab === 'security') setActiveTab('dashboard');
         }}
         auditLogs={auditLogs}
+        initialHashQuery={auditHashQuery}
       />
 
       <BeritaAcaraModal
@@ -330,6 +333,21 @@ export default function App() {
           setTotalVotes(electionStore.getTotalVotesCast());
           setTotalDpt(electionStore.getTotalDptCount());
         }}
+      />
+
+      <ConfirmationModal
+        isOpen={isResetConfirmOpen}
+        title="Reset Seluruh Data Pemilihan RW 14?"
+        message="Tindakan ini akan mengembalikan data pemilihan ke kondisi awal bersih: 3 kandidat resmi, 318 pemilih DPT (RT 01 s/d RT 06), dan 0 surat suara."
+        confirmText="Ya, Reset Sekarang"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={() => {
+          electionStore.resetToFreshState();
+          setActiveToken(null);
+          setIsResetConfirmOpen(false);
+        }}
+        onCancel={() => setIsResetConfirmOpen(false)}
       />
 
     </div>

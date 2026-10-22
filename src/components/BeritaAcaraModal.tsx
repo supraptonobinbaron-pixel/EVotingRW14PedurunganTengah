@@ -106,7 +106,7 @@ export const BeritaAcaraModal: React.FC<BeritaAcaraModalProps> = ({
                 <tr>
                   <td className="border border-slate-300 p-2">Tingkat Partisipasi Pemilih</td>
                   <td className="border border-slate-300 p-2 font-bold tabular-nums text-right">
-                    {((totalVotes / totalDpt) * 100).toFixed(1)}%
+                    {totalDpt > 0 ? ((totalVotes / totalDpt) * 100).toFixed(1) : '0.0'}%
                   </td>
                 </tr>
                 <tr className="bg-slate-100">
@@ -120,7 +120,7 @@ export const BeritaAcaraModal: React.FC<BeritaAcaraModalProps> = ({
                       Nomor Urut 0{candidate.number}: <strong>{candidate.name}</strong> (Asal {candidate.rtAsal})
                     </td>
                     <td className="border border-slate-300 p-2 font-bold tabular-nums text-right">
-                      {candidate.voteCount} Suara ({((candidate.voteCount / totalVotes) * 100).toFixed(1)}%)
+                      {candidate.voteCount} Suara ({totalVotes > 0 ? ((candidate.voteCount / totalVotes) * 100).toFixed(1) : '0.0'}%)
                     </td>
                   </tr>
                 ))}
@@ -129,14 +129,23 @@ export const BeritaAcaraModal: React.FC<BeritaAcaraModalProps> = ({
           </div>
 
           {/* Winner Announcement */}
-          <div className="p-3 bg-slate-50 border border-slate-300 rounded font-sans text-xs mb-6">
-            Berdasarkan hasil penghitungan suara di atas, Calon Ketua RW 14 yang memperoleh suara terbanyak adalah:
-            <div className="text-sm font-bold text-slate-900 mt-1">
-              Nomor Urut 0{winner.number} - {winner.name} (Perolehan {winner.voteCount} Suara)
-            </div>
-            <p className="text-[11px] text-slate-600 mt-0.5">
-              Dinyatakan terpilih sebagai Ketua RW 14 Kelurahan Pedurungan Tengah Periode 2026 - 2029.
-            </p>
+          <div className="p-3.5 bg-slate-50 border border-slate-300 rounded font-sans text-xs mb-6">
+            {totalVotes > 0 && winner && winner.voteCount > 0 ? (
+              <>
+                Berdasarkan hasil penghitungan suara di atas, Calon Ketua RW 14 yang memperoleh suara terbanyak adalah:
+                <div className="text-sm font-bold text-slate-900 mt-1">
+                  Nomor Urut 0{winner.number} - {winner.name} (Perolehan {winner.voteCount} Suara)
+                </div>
+                <p className="text-[11px] text-slate-600 mt-0.5">
+                  Dinyatakan terpilih sebagai Ketua RW 14 Kelurahan Pedurungan Tengah Periode 2026 - 2029.
+                </p>
+              </>
+            ) : (
+              <div className="text-slate-600">
+                <span className="font-semibold text-slate-800 block mb-0.5">Status Pemungutan Suara:</span>
+                Proses pemungutan suara sedang berlangsung di bilik suara digital RW 14. Penetapan calon terpilih akan disahkan setelah hasil rekapitulasi akhir ditutup pada pukul 14.00 WIB.
+              </div>
+            )}
           </div>
 
           {/* Signatures */}

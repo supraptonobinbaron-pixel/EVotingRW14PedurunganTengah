@@ -3,6 +3,7 @@ import { Search, CheckCircle2, UserX, ShieldCheck, X, UserPlus, Filter, Trash2, 
 import { CitizenRecord } from '../types/election';
 import { electionStore, RT_LIST } from '../services/electionStore';
 import { RwLogo } from './RwLogo';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface DptLookupModalProps {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export const DptLookupModal: React.FC<DptLookupModalProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedRt, setSelectedRt] = useState<string>('ALL');
   const [showRegisterForm, setShowRegisterForm] = useState<boolean>(false);
+  const [confirmClearAll, setConfirmClearAll] = useState<boolean>(false);
+  const [citizenToDelete, setCitizenToDelete] = useState<CitizenRecord | null>(null);
 
   // New resident form states
   const [regNik, setRegNik] = useState<string>('');
@@ -71,16 +74,26 @@ export const DptLookupModal: React.FC<DptLookupModalProps> = ({
   };
 
   const handleClearAllDpt = () => {
-    if (confirm('Apakah Anda yakin ingin MENGHAPUS SEMUA DATA DPT RW 14? Seluruh daftar warga terdaftar akan dikosongkan.')) {
-      electionStore.clearAllDpt();
-      setRegStatusMsg('Seluruh data DPT RW 14 telah berhasil dihapus bersih.');
-      setTimeout(() => setRegStatusMsg(''), 3000);
-    }
+    setConfirmClearAll(true);
+  };
+
+  const executeClearAllDpt = () => {
+    electionStore.clearAllDpt();
+    setConfirmClearAll(false);
+    setRegStatusMsg('Seluruh data DPT RW 14 telah berhasil dikosongkan.');
+    setTimeout(() => setRegStatusMsg(''), 3000);
   };
 
   const handleDeleteOneCitizen = (citizen: CitizenRecord) => {
-    if (confirm(`Hapus data pemilih: ${citizen.nama} (${citizen.nikMasked})?`)) {
-      electionStore.deleteCitizen(citizen.id);
+    setCitizenToDelete(citizen);
+  };
+
+  const executeDeleteCitizen = () => {
+    if (citizenToDelete) {
+      electionStore.deleteCitizen(citizenToDelete.id);
+      setCitizenToDelete(null);
+      setRegStatusMsg('Data warga berhasil dihapus dari DPT.');
+      setTimeout(() => setRegStatusMsg(''), 3000);
     }
   };
 
@@ -156,15 +169,27 @@ export const DptLookupModal: React.FC<DptLookupModalProps> = ({
                 <span>{showRegisterForm ? 'Tutup Form' : 'Tambah Warga'}</span>
               </button>
 
-              <button
-                type="button"
-                onClick={handleClearAllDpt}
-                title="Hapus semua data DPT RW 14"
-                className="px-3 py-2 text-xs font-semibold text-red-700 hover:text-white hover:bg-red-700 border border-red-300 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span>Hapus Semua DPT</span>
-              </button>
+              {dptList.length === 0 ? (
+                <button
+                  type="button"
+                  onClick={handleLoadSample}
+                  title="Muat data lengkap 318 DPT RW 14 (RT 01 s/d RT 06)"
+                  className="px-3 py-2 text-xs font-semibold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Muat 318 DPT</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleClearAllDpt}
+                  title="Hapus semua data DPT RW 14"
+                  className="px-3 py-2 text-xs font-semibold text-red-700 hover:text-white hover:bg-red-700 border border-red-300 rounded-lg transition-colors flex items-center gap-1.5 whitespace-nowrap cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Hapus Semua DPT</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -454,6 +479,31 @@ export const DptLookupModal: React.FC<DptLookupModalProps> = ({
 
         </div>
       </div>
+
+      {/* Confirmation Modal: Clear All DPT */}
+      <ConfirmationModal
+        isOpen={confirmClearAll}
+        title="Kosongkan Seluruh Data DPT RW 14?"
+        message="PERINGATAN: Semua daftar pemilih tetap (DPT) terdaftar akan dihapus bersih dari sistem. Anda dapat memuat ulang sampel DPT kapan saja jika diperlukan."
+        confirmText="Ya, Hapus Semua DPT"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={executeClearAllDpt}
+        onCancel={() => setConfirmClearAll(false)}
+      />
+
+      {/* Confirmation Modal: Delete One Citizen */}
+      <ConfirmationModal
+        isOpen={!!citizenToDelete}
+        title="Hapus Pemilih dari DPT?"
+        message={`Apakah Anda yakin ingin menghapus data pemilih: ${citizenToDelete?.nama || ''} (${citizenToDelete?.nikMasked || ''}, ${citizenToDelete?.rt || ''})?`}
+        confirmText="Ya, Hapus Pemilih"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={executeDeleteCitizen}
+        onCancel={() => setCitizenToDelete(null)}
+      />
+
     </div>
   );
 };

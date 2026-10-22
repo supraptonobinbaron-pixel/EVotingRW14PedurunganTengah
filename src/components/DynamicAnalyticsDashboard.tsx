@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { Candidate, CastBallot, ZoneType, AgeGroupType } from '../types/election';
 import { electionStore, RT_LIST } from '../services/electionStore';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface DynamicAnalyticsDashboardProps {
   candidates: Candidate[];
@@ -40,6 +41,7 @@ export const DynamicAnalyticsDashboard: React.FC<DynamicAnalyticsDashboardProps>
   const [selectedRt, setSelectedRt] = useState<string>('ALL');
   const [chartViewMode, setChartViewMode] = useState<'BAR' | 'PIE'>('BAR');
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'TREND' | 'DEMOGRAPHICS'>('OVERVIEW');
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Filter ballots based on selected zone and RT
   const filteredBallots = ballots.filter(b => {
@@ -127,9 +129,12 @@ export const DynamicAnalyticsDashboard: React.FC<DynamicAnalyticsDashboardProps>
 
   // Reset Data action
   const handleResetData = () => {
-    if (confirm('Apakah Anda yakin ingin mereset seluruh data contoh pemilihan ke status awal bersih?')) {
-      electionStore.resetToFreshState();
-    }
+    setShowResetConfirm(true);
+  };
+
+  const confirmResetData = () => {
+    electionStore.resetToFreshState();
+    setShowResetConfirm(false);
   };
 
   // Load sample test data action
@@ -438,7 +443,14 @@ export const DynamicAnalyticsDashboard: React.FC<DynamicAnalyticsDashboardProps>
               <div className="flex justify-between items-center">
                 <span className="text-xs text-slate-500">Tingkat Partisipasi:</span>
                 <span className="text-base font-extrabold text-emerald-600 tabular-nums">
-                  {totalDpt > 0 ? ((filteredTotal / (totalDpt / 3)) * 100).toFixed(1) : 0}%
+                  {(() => {
+                    const denominator = selectedRt !== 'ALL'
+                      ? Math.round(totalDpt / 6)
+                      : selectedZone !== 'ALL'
+                        ? Math.round(totalDpt / 3)
+                        : totalDpt;
+                    return denominator > 0 ? ((filteredTotal / denominator) * 100).toFixed(1) : '0.0';
+                  })()}%
                 </span>
               </div>
 
@@ -647,6 +659,17 @@ export const DynamicAnalyticsDashboard: React.FC<DynamicAnalyticsDashboardProps>
 
         </div>
       )}
+
+      <ConfirmationModal
+        isOpen={showResetConfirm}
+        title="Reset Data Pemilihan RW 14?"
+        message="Tindakan ini akan mengembalikan data pemilihan ke kondisi awal bersih: 3 kandidat resmi, 318 pemilih DPT (RT 01 s/d RT 06), dan 0 surat suara."
+        confirmText="Ya, Reset Bersih"
+        cancelText="Batal"
+        variant="danger"
+        onConfirm={confirmResetData}
+        onCancel={() => setShowResetConfirm(false)}
+      />
 
     </div>
   );

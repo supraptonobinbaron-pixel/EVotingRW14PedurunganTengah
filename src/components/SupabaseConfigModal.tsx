@@ -23,6 +23,7 @@ import {
   pushAllLocalDataToSupabase
 } from '../services/supabaseService';
 import { electionStore } from '../services/electionStore';
+import { ConfirmationModal } from './ConfirmationModal';
 
 interface SupabaseConfigModalProps {
   isOpen: boolean;
@@ -38,6 +39,7 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
   const [url, setUrl] = useState('');
   const [anonKey, setAnonKey] = useState('');
   const [isEnabled, setIsEnabled] = useState(true);
+  const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{
     type: 'success' | 'error' | 'info';
     text: string;
@@ -155,16 +157,19 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
   };
 
   const handleDisconnect = () => {
-    if (confirm('Apakah Anda yakin ingin memutuskan koneksi Supabase? Aplikasi akan beralih ke penyimpanan lokal (browser storage).')) {
-      clearSupabaseConfig();
-      setUrl('');
-      setAnonKey('');
-      setStatusMessage({
-        type: 'info',
-        text: 'Koneksi Supabase dinonaktifkan. Mode penyimpanan lokal aktif.'
-      });
-      if (onSyncComplete) onSyncComplete();
-    }
+    setShowDisconnectConfirm(true);
+  };
+
+  const confirmDisconnect = () => {
+    clearSupabaseConfig();
+    setUrl('');
+    setAnonKey('');
+    setShowDisconnectConfirm(false);
+    setStatusMessage({
+      type: 'info',
+      text: 'Koneksi Supabase dinonaktifkan. Mode penyimpanan lokal aktif.'
+    });
+    if (onSyncComplete) onSyncComplete();
   };
 
   const copySqlToClipboard = () => {
@@ -507,6 +512,17 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
         </div>
 
       </div>
+
+      <ConfirmationModal
+        isOpen={showDisconnectConfirm}
+        title="Putus Koneksi Supabase?"
+        message="Aplikasi akan beralih ke penyimpanan browser lokal (localStorage). Data lokal yang belum diunggah ke Supabase tetap tersimpan di perangkat ini."
+        confirmText="Ya, Putuskan"
+        cancelText="Batal"
+        variant="warning"
+        onConfirm={confirmDisconnect}
+        onCancel={() => setShowDisconnectConfirm(false)}
+      />
     </div>
   );
 };

@@ -30,6 +30,7 @@ export const RealtimeDashboard: React.FC<RealtimeDashboardProps> = ({
     found: boolean;
     message: string;
   } | null>(null);
+  const [statusToast, setStatusToast] = useState<string>('');
 
   const participationRate = totalDpt > 0 ? ((totalVotes / totalDpt) * 100).toFixed(1) : '0';
   const remainingVotes = Math.max(0, totalDpt - totalVotes);
@@ -63,7 +64,8 @@ export const RealtimeDashboard: React.FC<RealtimeDashboardProps> = ({
   const handleSimulateFastTurnout = async () => {
     const unvoted = dptList.find(c => !c.hasVoted);
     if (!unvoted) {
-      alert('Semua DPT saat ini telah menggunakan hak suaranya.');
+      setStatusToast('Semua DPT saat ini telah menggunakan hak suaranya.');
+      setTimeout(() => setStatusToast(''), 3000);
       return;
     }
     try {
@@ -151,8 +153,13 @@ export const RealtimeDashboard: React.FC<RealtimeDashboardProps> = ({
               </h2>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Data terenkripsi dari 8 RT di wilayah RW 14 Kelurahan Pedurungan Tengah. Diperbarui otomatis secara live.
+              Data terenkripsi dari 6 RT di wilayah RW 14 Kelurahan Pedurungan Tengah (RT 01 s/d RT 06). Diperbarui otomatis secara live.
             </p>
+            {statusToast && (
+              <div className="mt-2 p-2 px-3 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-lg inline-flex items-center gap-1.5 animate-in fade-in">
+                <span>ℹ️ {statusToast}</span>
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
